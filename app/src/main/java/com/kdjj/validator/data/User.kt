@@ -1,0 +1,17 @@
+package com.kdjj.validator.data
+
+import androidx.lifecycle.MutableLiveData
+import com.kdjj.validation_annotation.annotation.*
+
+
+@Validation
+data class User (
+    @MinLength(10)
+    @MaxLength(40)
+    @Regex("^*")
+    val name: String,
+
+    @MinInt(5)
+    @MaxInt(10)
+    val age: Int,
+)
