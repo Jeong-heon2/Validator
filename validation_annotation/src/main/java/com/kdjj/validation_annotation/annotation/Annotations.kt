@@ -55,3 +55,14 @@ annotation class MaxDouble(
 annotation class MinDouble(
     val value: Double,
 )
+
+// Long Field
+@Target(AnnotationTarget.FIELD)
+annotation class MaxLong(
+    val value: Long,
+)
+
+@Target(AnnotationTarget.FIELD)
+annotation class MinLong(
+    val value: Long,
+)

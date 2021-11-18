@@ -16,9 +16,13 @@ data class User (
 
     @MinFloat(5f)
     @MaxFloat(10f)
-    val score: Float,
+    val luck: Float,
 
     @MinDouble(5.0)
     @MaxDouble(100.0)
-    val percentage: Double
+    val power: Double,
+
+    @MinLong(5L)
+    @MaxLong(100L)
+    val speed: Long
 )

@@ -78,6 +78,9 @@ class DataValidationProcessor : AbstractProcessor() {
                     Double::class -> {
                         checkDoubleAnnotations(typeSpecBuilder, it)
                     }
+                    Long::class -> {
+                        checkLongAnnotations(typeSpecBuilder, it)
+                    }
                 }
             }
         }
@@ -260,6 +263,41 @@ class DataValidationProcessor : AbstractProcessor() {
         }
     }
 
+    private fun checkLongAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement) {
+        val propertyName = propertyElement.simpleName.toString()
+        val convertedPropertyName = convertPropertyName(propertyName)
+        val propertyValidateFuncName = FUNC_PREFIX + convertedPropertyName
+
+        val minLong = propertyElement.getAnnotation(MinLong::class.java)
+        val maxLong = propertyElement.getAnnotation(MaxLong::class.java)
+
+        val funcNameList = mutableListOf<String>()
+
+        minLong?.let {
+            val funcName = propertyValidateFuncName + minLong.annotationClass.simpleName
+            typeSpecBuilder.addFunction(generateMinLongFunSpec(it, propertyName, funcName))
+            funcNameList.add(funcName)
+        }
+
+        maxLong?.let {
+            val funcName = propertyValidateFuncName + maxLong.annotationClass.simpleName
+            typeSpecBuilder.addFunction(generateMaxLongFunSpec(it, propertyName, funcName))
+            funcNameList.add(funcName)
+        }
+
+        if (funcNameList.isNotEmpty()) {
+            typeSpecBuilder.addFunction(
+                generatePropertyValidateFunSpec(
+                    propertyName,
+                    funcNameList,
+                    propertyValidateFuncName,
+                    Long::class
+                )
+            )
+            propertyValidateFuncMap[propertyName] = propertyValidateFuncName
+        }
+    }
+
     private fun generatePropertyValidateFunSpec(propertyName: String, funcList: List<String>, funcName: String, kClass: KClass<*>): FunSpec =
         FunSpec.builder(funcName)
             .addModifiers(KModifier.PUBLIC)
@@ -397,6 +435,34 @@ class DataValidationProcessor : AbstractProcessor() {
         minDoubleFunSpec.addStatement("return true")
 
         return minDoubleFunSpec.build()
+    }
+
+    private fun generateMaxLongFunSpec(maxLong: MaxLong, propertyName: String, funcName: String): FunSpec {
+        val maxLongFunSpec = FunSpec.builder(funcName)
+            .addModifiers(KModifier.PRIVATE)
+            .addParameter(propertyName, Long::class)
+            .returns(Boolean::class)
+
+        maxLongFunSpec.beginControlFlow("if($propertyName > ${maxLong.value})")
+        maxLongFunSpec.addStatement("return false")
+        maxLongFunSpec.endControlFlow()
+        maxLongFunSpec.addStatement("return true")
+
+        return maxLongFunSpec.build()
+    }
+
+    private fun generateMinLongFunSpec(minLong: MinLong, propertyName: String, funcName: String): FunSpec {
+        val minLongFunSpec = FunSpec.builder(funcName)
+            .addModifiers(KModifier.PRIVATE)
+            .addParameter(propertyName, Long::class)
+            .returns(Boolean::class)
+
+        minLongFunSpec.beginControlFlow("if($propertyName < ${minLong.value})")
+        minLongFunSpec.addStatement("return false")
+        minLongFunSpec.endControlFlow()
+        minLongFunSpec.addStatement("return true")
+
+        return minLongFunSpec.build()
     }
 
     private fun generatePropertyValidateCode(propertyName: String, list: List<String>): String =
