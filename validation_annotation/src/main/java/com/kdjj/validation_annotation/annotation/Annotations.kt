@@ -35,4 +35,12 @@ annotation class MinInt(
 )
 
 // float field
+@Target(AnnotationTarget.FIELD)
+annotation class MaxFloat(
+    val value: Float,
+)
 
+@Target(AnnotationTarget.FIELD)
+annotation class MinFloat(
+    val value: Float,
+)

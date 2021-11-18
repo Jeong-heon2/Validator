@@ -1,6 +1,5 @@
 package com.kdjj.validator.data
 
-import androidx.lifecycle.MutableLiveData
 import com.kdjj.validation_annotation.annotation.*
 
 
@@ -14,4 +13,8 @@ data class User (
     @MinInt(5)
     @MaxInt(10)
     val age: Int,
+
+    @MinFloat(5f)
+    @MaxFloat(10f)
+    val score: Float,
 )
