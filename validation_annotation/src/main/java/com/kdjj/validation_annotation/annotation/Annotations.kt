@@ -44,3 +44,14 @@ annotation class MaxFloat(
 annotation class MinFloat(
     val value: Float,
 )
+
+// Double Field
+@Target(AnnotationTarget.FIELD)
+annotation class MaxDouble(
+    val value: Double,
+)
+
+@Target(AnnotationTarget.FIELD)
+annotation class MinDouble(
+    val value: Double,
+)

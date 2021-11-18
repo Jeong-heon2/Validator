@@ -17,4 +17,8 @@ data class User (
     @MinFloat(5f)
     @MaxFloat(10f)
     val score: Float,
+
+    @MinDouble(5.0)
+    @MaxDouble(100.0)
+    val percentage: Double
 )
