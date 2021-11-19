@@ -1,5 +1,7 @@
 package com.kdjj.validator.data
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import com.kdjj.validation_annotation.annotation.*
 
 
@@ -24,5 +26,10 @@ data class User (
 
     @MinLong(5L)
     @MaxLong(100L)
-    val speed: Long
+    val speed: Long,
+
+
+    @MinLong(4L)
+    val mutableLiveData: MutableLiveData<Long>,
+    val liveData: LiveData<String>,
 )
