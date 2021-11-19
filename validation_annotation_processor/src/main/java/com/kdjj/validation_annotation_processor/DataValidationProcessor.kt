@@ -17,9 +17,15 @@ import kotlin.reflect.KClass
 
 class DataValidationProcessor : AbstractProcessor() {
 
-    // propertyName : funcName
-    private val propertyValidateFuncMap = mutableMapOf<String, String>()
+    // propertyName : (ClassMeta ,funcName)
+    private val propertyValidateFuncMap = mutableMapOf<String, Pair<ClassMeta, String>>()
     private lateinit var processingEnvironment : ProcessingEnvironment
+
+    private val liveDataStringRegex = """^androidx\.lifecycle\..*LiveData<java.lang.String>""".toRegex()
+    private val liveDataIntRegex = """^androidx\.lifecycle\..*LiveData<java.lang.Integer>""".toRegex()
+    private val liveDataFloatRegex = """^androidx\.lifecycle\..*LiveData<java.lang.Float>""".toRegex()
+    private val liveDataDoubleRegex = """^androidx\.lifecycle\..*LiveData<java.lang.Double>""".toRegex()
+    private val liveDataLongRegex = """^androidx\.lifecycle\..*LiveData<java.lang.Long>""".toRegex()
 
     override fun getSupportedAnnotationTypes(): MutableSet<String> {
         return mutableSetOf(
@@ -67,19 +73,32 @@ class DataValidationProcessor : AbstractProcessor() {
             if (it is VariableElement) {
                 when (getClass(it)) {
                     String::class -> {
-                        checkStringAnnotations(typeSpecBuilder, it)
+                        checkStringAnnotations(typeSpecBuilder, it, false)
                     }
                     Int::class -> {
-                        checkIntAnnotations(typeSpecBuilder, it)
+                        checkIntAnnotations(typeSpecBuilder, it, false)
                     }
                     Float::class -> {
-                        checkFloatAnnotations(typeSpecBuilder, it)
+                        checkFloatAnnotations(typeSpecBuilder, it, false)
                     }
                     Double::class -> {
-                        checkDoubleAnnotations(typeSpecBuilder, it)
+                        checkDoubleAnnotations(typeSpecBuilder, it, false)
                     }
                     Long::class -> {
-                        checkLongAnnotations(typeSpecBuilder, it)
+                        checkLongAnnotations(typeSpecBuilder, it, false)
+                    }
+                    null -> {
+                        if (liveDataStringRegex.matches(it.asType().toString())) {
+                            checkStringAnnotations(typeSpecBuilder, it, true)
+                        } else if (liveDataIntRegex.matches(it.asType().toString())) {
+                            checkIntAnnotations(typeSpecBuilder, it, true)
+                        } else if (liveDataFloatRegex.matches(it.asType().toString())) {
+                            checkFloatAnnotations(typeSpecBuilder, it, true)
+                        } else if (liveDataDoubleRegex.matches(it.asType().toString())) {
+                            checkDoubleAnnotations(typeSpecBuilder, it, true)
+                        } else if (liveDataLongRegex.matches(it.asType().toString())) {
+                            checkLongAnnotations(typeSpecBuilder, it, true)
+                        }
                     }
                 }
             }
@@ -112,11 +131,17 @@ class DataValidationProcessor : AbstractProcessor() {
 
     private fun generateClassValidateCode(className: String): String {
         val classProperty = className.lowercase()
-        return propertyValidateFuncMap.map { "${it.value}($classProperty.${it.key})" }
+        return propertyValidateFuncMap.map {
+                if (it.value.first.isLiveData) {
+                    "${it.value.second}($classProperty.${it.key}.value!!)"
+                } else {
+                    "${it.value.second}($classProperty.${it.key}!!)"
+                }
+            }
             .reduce { acc, s -> "$acc && $s" }
     }
 
-    private fun checkStringAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement) {
+    private fun checkStringAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement, isLiveData: Boolean) {
         val propertyName = propertyElement.simpleName.toString()
         val convertedPropertyName = convertPropertyName(propertyName)
         val propertyValidateFuncName = FUNC_PREFIX + convertedPropertyName
@@ -154,11 +179,11 @@ class DataValidationProcessor : AbstractProcessor() {
                     String::class
                 )
             )
-            propertyValidateFuncMap[propertyName] = propertyValidateFuncName
+            propertyValidateFuncMap[propertyName] = Pair(ClassMeta(isLiveData), propertyValidateFuncName)
         }
     }
 
-    private fun checkIntAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement) {
+    private fun checkIntAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement, isLiveData: Boolean) {
         val propertyName = propertyElement.simpleName.toString()
         val convertedPropertyName = convertPropertyName(propertyName)
         val propertyValidateFuncName = FUNC_PREFIX + convertedPropertyName
@@ -189,11 +214,11 @@ class DataValidationProcessor : AbstractProcessor() {
                     Int::class
                 )
             )
-            propertyValidateFuncMap[propertyName] = propertyValidateFuncName
+            propertyValidateFuncMap[propertyName] = Pair(ClassMeta(isLiveData), propertyValidateFuncName)
         }
     }
 
-    private fun checkFloatAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement) {
+    private fun checkFloatAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement, isLiveData: Boolean) {
         val propertyName = propertyElement.simpleName.toString()
         val convertedPropertyName = convertPropertyName(propertyName)
         val propertyValidateFuncName = FUNC_PREFIX + convertedPropertyName
@@ -224,11 +249,11 @@ class DataValidationProcessor : AbstractProcessor() {
                     Float::class
                 )
             )
-            propertyValidateFuncMap[propertyName] = propertyValidateFuncName
+            propertyValidateFuncMap[propertyName] = Pair(ClassMeta(isLiveData), propertyValidateFuncName)
         }
     }
 
-    private fun checkDoubleAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement) {
+    private fun checkDoubleAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement, isLiveData: Boolean) {
         val propertyName = propertyElement.simpleName.toString()
         val convertedPropertyName = convertPropertyName(propertyName)
         val propertyValidateFuncName = FUNC_PREFIX + convertedPropertyName
@@ -259,11 +284,11 @@ class DataValidationProcessor : AbstractProcessor() {
                     Double::class
                 )
             )
-            propertyValidateFuncMap[propertyName] = propertyValidateFuncName
+            propertyValidateFuncMap[propertyName] = Pair(ClassMeta(isLiveData), propertyValidateFuncName)
         }
     }
 
-    private fun checkLongAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement) {
+    private fun checkLongAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement, isLiveData: Boolean) {
         val propertyName = propertyElement.simpleName.toString()
         val convertedPropertyName = convertPropertyName(propertyName)
         val propertyValidateFuncName = FUNC_PREFIX + convertedPropertyName
@@ -294,7 +319,7 @@ class DataValidationProcessor : AbstractProcessor() {
                     Long::class
                 )
             )
-            propertyValidateFuncMap[propertyName] = propertyValidateFuncName
+            propertyValidateFuncMap[propertyName] = Pair(ClassMeta(isLiveData), propertyValidateFuncName)
         }
     }
 
@@ -479,14 +504,12 @@ class DataValidationProcessor : AbstractProcessor() {
 
     private fun getClass(it: VariableElement): KClass<*>? {
         val type = it.asType()
-        println(type.kind)
-
+        println(type.toString())
         return when (type.kind) {
             TypeKind.DECLARED -> {
                 try {
                     Class.forName(type.toString()).kotlin
                 } catch (e: Exception) {
-                    e.printStackTrace()
                     null
                 }
             }
@@ -501,6 +524,10 @@ class DataValidationProcessor : AbstractProcessor() {
             else -> null
         }
     }
+
+    data class ClassMeta(
+        val isLiveData: Boolean = false
+    )
 
     companion object {
         const val KAPT_KOTLIN_GENERATED_OPTION_NAME = "kapt.kotlin.generated"
