@@ -3,6 +3,7 @@ package com.kdjj.validation_annotation_processor
 import com.kdjj.validation_annotation.annotation.*
 import com.squareup.kotlinpoet.*
 import java.io.File
+import java.lang.Exception
 import java.lang.StringBuilder
 import javax.annotation.processing.AbstractProcessor
 import javax.annotation.processing.ProcessingEnvironment
@@ -70,6 +71,15 @@ class DataValidationProcessor : AbstractProcessor() {
                     }
                     Int::class -> {
                         checkIntAnnotations(typeSpecBuilder, it)
+                    }
+                    Float::class -> {
+                        checkFloatAnnotations(typeSpecBuilder, it)
+                    }
+                    Double::class -> {
+                        checkDoubleAnnotations(typeSpecBuilder, it)
+                    }
+                    Long::class -> {
+                        checkLongAnnotations(typeSpecBuilder, it)
                     }
                 }
             }
@@ -183,6 +193,111 @@ class DataValidationProcessor : AbstractProcessor() {
         }
     }
 
+    private fun checkFloatAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement) {
+        val propertyName = propertyElement.simpleName.toString()
+        val convertedPropertyName = convertPropertyName(propertyName)
+        val propertyValidateFuncName = FUNC_PREFIX + convertedPropertyName
+
+        val minFloat = propertyElement.getAnnotation(MinFloat::class.java)
+        val maxFloat = propertyElement.getAnnotation(MaxFloat::class.java)
+
+        val funcNameList = mutableListOf<String>()
+
+        minFloat?.let {
+            val funcName = propertyValidateFuncName + minFloat.annotationClass.simpleName
+            typeSpecBuilder.addFunction(generateMinFloatFunSpec(it, propertyName, funcName))
+            funcNameList.add(funcName)
+        }
+
+        maxFloat?.let {
+            val funcName = propertyValidateFuncName + maxFloat.annotationClass.simpleName
+            typeSpecBuilder.addFunction(generateMaxFloatFunSpec(it, propertyName, funcName))
+            funcNameList.add(funcName)
+        }
+
+        if (funcNameList.isNotEmpty()) {
+            typeSpecBuilder.addFunction(
+                generatePropertyValidateFunSpec(
+                    propertyName,
+                    funcNameList,
+                    propertyValidateFuncName,
+                    Float::class
+                )
+            )
+            propertyValidateFuncMap[propertyName] = propertyValidateFuncName
+        }
+    }
+
+    private fun checkDoubleAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement) {
+        val propertyName = propertyElement.simpleName.toString()
+        val convertedPropertyName = convertPropertyName(propertyName)
+        val propertyValidateFuncName = FUNC_PREFIX + convertedPropertyName
+
+        val minDouble = propertyElement.getAnnotation(MinDouble::class.java)
+        val maxDouble = propertyElement.getAnnotation(MaxDouble::class.java)
+
+        val funcNameList = mutableListOf<String>()
+
+        minDouble?.let {
+            val funcName = propertyValidateFuncName + minDouble.annotationClass.simpleName
+            typeSpecBuilder.addFunction(generateMinDoubleFunSpec(it, propertyName, funcName))
+            funcNameList.add(funcName)
+        }
+
+        maxDouble?.let {
+            val funcName = propertyValidateFuncName + maxDouble.annotationClass.simpleName
+            typeSpecBuilder.addFunction(generateMaxDoubleFunSpec(it, propertyName, funcName))
+            funcNameList.add(funcName)
+        }
+
+        if (funcNameList.isNotEmpty()) {
+            typeSpecBuilder.addFunction(
+                generatePropertyValidateFunSpec(
+                    propertyName,
+                    funcNameList,
+                    propertyValidateFuncName,
+                    Double::class
+                )
+            )
+            propertyValidateFuncMap[propertyName] = propertyValidateFuncName
+        }
+    }
+
+    private fun checkLongAnnotations(typeSpecBuilder: TypeSpec.Builder, propertyElement: VariableElement) {
+        val propertyName = propertyElement.simpleName.toString()
+        val convertedPropertyName = convertPropertyName(propertyName)
+        val propertyValidateFuncName = FUNC_PREFIX + convertedPropertyName
+
+        val minLong = propertyElement.getAnnotation(MinLong::class.java)
+        val maxLong = propertyElement.getAnnotation(MaxLong::class.java)
+
+        val funcNameList = mutableListOf<String>()
+
+        minLong?.let {
+            val funcName = propertyValidateFuncName + minLong.annotationClass.simpleName
+            typeSpecBuilder.addFunction(generateMinLongFunSpec(it, propertyName, funcName))
+            funcNameList.add(funcName)
+        }
+
+        maxLong?.let {
+            val funcName = propertyValidateFuncName + maxLong.annotationClass.simpleName
+            typeSpecBuilder.addFunction(generateMaxLongFunSpec(it, propertyName, funcName))
+            funcNameList.add(funcName)
+        }
+
+        if (funcNameList.isNotEmpty()) {
+            typeSpecBuilder.addFunction(
+                generatePropertyValidateFunSpec(
+                    propertyName,
+                    funcNameList,
+                    propertyValidateFuncName,
+                    Long::class
+                )
+            )
+            propertyValidateFuncMap[propertyName] = propertyValidateFuncName
+        }
+    }
+
     private fun generatePropertyValidateFunSpec(propertyName: String, funcList: List<String>, funcName: String, kClass: KClass<*>): FunSpec =
         FunSpec.builder(funcName)
             .addModifiers(KModifier.PUBLIC)
@@ -266,6 +381,90 @@ class DataValidationProcessor : AbstractProcessor() {
         return minIntFunSpec.build()
     }
 
+    private fun generateMaxFloatFunSpec(maxFloat: MaxFloat, propertyName: String, funcName: String): FunSpec {
+        val maxFloatFunSpec = FunSpec.builder(funcName)
+            .addModifiers(KModifier.PRIVATE)
+            .addParameter(propertyName, Float::class)
+            .returns(Boolean::class)
+
+        maxFloatFunSpec.beginControlFlow("if($propertyName > ${maxFloat.value})")
+        maxFloatFunSpec.addStatement("return false")
+        maxFloatFunSpec.endControlFlow()
+        maxFloatFunSpec.addStatement("return true")
+
+        return maxFloatFunSpec.build()
+    }
+
+    private fun generateMinFloatFunSpec(minFloat: MinFloat, propertyName: String, funcName: String): FunSpec {
+        val minFloatFunSpec = FunSpec.builder(funcName)
+            .addModifiers(KModifier.PRIVATE)
+            .addParameter(propertyName, Float::class)
+            .returns(Boolean::class)
+
+        minFloatFunSpec.beginControlFlow("if($propertyName < ${minFloat.value})")
+        minFloatFunSpec.addStatement("return false")
+        minFloatFunSpec.endControlFlow()
+        minFloatFunSpec.addStatement("return true")
+
+        return minFloatFunSpec.build()
+    }
+
+    private fun generateMaxDoubleFunSpec(maxDouble: MaxDouble, propertyName: String, funcName: String): FunSpec {
+        val maxDoubleFunSpec = FunSpec.builder(funcName)
+            .addModifiers(KModifier.PRIVATE)
+            .addParameter(propertyName, Double::class)
+            .returns(Boolean::class)
+
+        maxDoubleFunSpec.beginControlFlow("if($propertyName > ${maxDouble.value})")
+        maxDoubleFunSpec.addStatement("return false")
+        maxDoubleFunSpec.endControlFlow()
+        maxDoubleFunSpec.addStatement("return true")
+
+        return maxDoubleFunSpec.build()
+    }
+
+    private fun generateMinDoubleFunSpec(minDouble: MinDouble, propertyName: String, funcName: String): FunSpec {
+        val minDoubleFunSpec = FunSpec.builder(funcName)
+            .addModifiers(KModifier.PRIVATE)
+            .addParameter(propertyName, Double::class)
+            .returns(Boolean::class)
+
+        minDoubleFunSpec.beginControlFlow("if($propertyName < ${minDouble.value})")
+        minDoubleFunSpec.addStatement("return false")
+        minDoubleFunSpec.endControlFlow()
+        minDoubleFunSpec.addStatement("return true")
+
+        return minDoubleFunSpec.build()
+    }
+
+    private fun generateMaxLongFunSpec(maxLong: MaxLong, propertyName: String, funcName: String): FunSpec {
+        val maxLongFunSpec = FunSpec.builder(funcName)
+            .addModifiers(KModifier.PRIVATE)
+            .addParameter(propertyName, Long::class)
+            .returns(Boolean::class)
+
+        maxLongFunSpec.beginControlFlow("if($propertyName > ${maxLong.value})")
+        maxLongFunSpec.addStatement("return false")
+        maxLongFunSpec.endControlFlow()
+        maxLongFunSpec.addStatement("return true")
+
+        return maxLongFunSpec.build()
+    }
+
+    private fun generateMinLongFunSpec(minLong: MinLong, propertyName: String, funcName: String): FunSpec {
+        val minLongFunSpec = FunSpec.builder(funcName)
+            .addModifiers(KModifier.PRIVATE)
+            .addParameter(propertyName, Long::class)
+            .returns(Boolean::class)
+
+        minLongFunSpec.beginControlFlow("if($propertyName < ${minLong.value})")
+        minLongFunSpec.addStatement("return false")
+        minLongFunSpec.endControlFlow()
+        minLongFunSpec.addStatement("return true")
+
+        return minLongFunSpec.build()
+    }
+
     private fun generatePropertyValidateCode(propertyName: String, list: List<String>): String =
         list.reduce { acc, s -> "$acc($propertyName) && $s" } + "($propertyName)"
 
@@ -278,11 +477,19 @@ class DataValidationProcessor : AbstractProcessor() {
         return sb.toString()
     }
 
-    private fun getClass(it: VariableElement): KClass<*> {
+    private fun getClass(it: VariableElement): KClass<*>? {
         val type = it.asType()
+        println(type.kind)
 
         return when (type.kind) {
-            TypeKind.DECLARED -> Class.forName(type.toString()).kotlin
+            TypeKind.DECLARED -> {
+                try {
+                    Class.forName(type.toString()).kotlin
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
+                }
+            }
             TypeKind.BOOLEAN -> Boolean::class
             TypeKind.BYTE -> Byte::class
             TypeKind.SHORT -> Short::class
@@ -291,7 +498,7 @@ class DataValidationProcessor : AbstractProcessor() {
             TypeKind.CHAR -> Char::class
             TypeKind.FLOAT -> Float::class
             TypeKind.DOUBLE -> Double::class
-            else -> throw Exception("Unknown type: $type, kind: ${type.kind}")
+            else -> null
         }
     }
 
