@@ -1,6 +1,22 @@
 # Data Validation generator 
 
 ## How to use 
+add jitpack.io repository in settings.gradle file
+```kotlin
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' } // add this 
+    }
+}
+```
+add dependencies to your module
+```kotlin
+implementation 'com.github.Jeong-heon2.Validator:validation_annotation:0.0.3'
+kapt 'com.github.Jeong-heon2.Validator:validation_annotation_processor:0.0.3'
+```
 1. add \@Validation annotation to Class
 2. add Constraint Annotation to Field 
 ```kotlin
